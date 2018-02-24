@@ -1,5 +1,7 @@
 ## Spotisync - download and sync your spotify playlist in 1 click
 
+![Demo](https://raw.githubusercontent.com/albertaleksieiev/spotisync/content/demo.gif)
+
 ### Dependencies
 
 ```
