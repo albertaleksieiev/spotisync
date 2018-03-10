@@ -2,7 +2,7 @@ import sys
 import spotipy
 import os
 import subprocess
-
+from multiprocessing import Pool
 import tempfile
 
 class Synchronizer(object):
@@ -51,25 +51,23 @@ class Synchronizer(object):
 
         dest = "./audio/%s.mp3" % name
         tmpdir = tempfile.mkdtemp()
-        dest_tmp = "%s/%s.mp3" % (tmpdir, name)
+        dest_tmp = "%s/%s" % (tmpdir, name)
 
 
-        print(dest_tmp)
         if not os.path.exists(dest):
-            subprocess.call(['/usr/local/bin/youtube-dl','--extract-audio','--audio-format',"mp3",'--audio-quality','0', url,'-o', dest_tmp])
-            subprocess.call(['ffmpeg','-i', dest_tmp, dest])
+            subprocess.call(['/usr/local/bin/youtube-dl','-f','bestaudio', url,'-o',dest_tmp])
+            subprocess.call(['ffmpeg','-i', dest_tmp,'-codec:a','libmp3lame','-qscale:a','0', dest])
 
-
+    def searchAndDownload(self, name):
+        print("> %s" % name)
+        url = self.searchVideo(name)
+        self.downloadVideo(url, name)
+    
     def sync(self):
         token = self.requestToken()
         sp = spotipy.Spotify(auth=token)
         results = sp.user_playlist(self.username, self.playlistid)
         result = [(i['track']['name'],i['track']['artists'][0]['name']) for i in results['tracks']['items']]
 
-
-        for key, val in enumerate(result[::-1]):
-            name = ("%s - %s" % (val[1], val[0]))
-            print("(%d/%d) > %s" %(key + 1,len(result),name))
-
-            url = self.searchVideo(name)
-            self.downloadVideo(url, name)
+        pool = Pool(8)
+        pool.map(self.searchAndDownload, [("%s - %s" % (val[1], val[0])) for val in result[::-1]])
